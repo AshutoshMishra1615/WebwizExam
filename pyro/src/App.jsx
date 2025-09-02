@@ -29,7 +29,7 @@ function App() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
-      <div className="flex flex-col gap-5 w-full max-w-2xs">
+      <div className="flex flex-col gap-5 w-full max-w-[30vw]">
         <div className="bg-white p-4 rounded-2xl shadow-md flex flex-col transition-shadow hover:border-blue-500 hover:border">
           <div className="mb-4 flex flex-row flex-wrap gap-4">
             {selectedUsers.length > 0 &&
@@ -66,11 +66,11 @@ function App() {
 
         <div className="bg-white p-4 rounded-2xl shadow-md flex flex-col transition-shadow hover:border-blue-500 hover:border">
           {userData?.users?.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4">
+            <div className="flex flex-col justify-center items-center gap-4">
               {userData.users.map((user) => (
                 <div
                   key={user.id}
-                  className="cursor-pointer rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 opacity-70 p-2 shadow text-white"
+                  className="cursor-pointer rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 opacity-70 p-2 shadow text-white w-full px-8"
                   onClick={() => {
                     if (!selectedUsers.some((u) => u.id === user.id)) {
                       setSelectedUsers([...selectedUsers, user]);
