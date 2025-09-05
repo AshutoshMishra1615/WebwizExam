@@ -1,95 +1,168 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
+import Editor from "@monaco-editor/react";
+import URDFViewer from "./components/URDFViewer";
+import { generateURDF } from "./api/gemini";
 
 function App() {
-  const [userData, setUserData] = useState(null);
-  const [search, setSearch] = useState("");
-  const [selectedUsers, setSelectedUsers] = useState([]);
+  const [prompt, setPrompt] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [urdf, setUrdf] = useState(`<?xml version="1.0"?>
+<robot name="simple_bot">
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="1 1 0.2"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+  </link>
+</robot>`);
+  const [availableJoints, setAvailableJoints] = useState([]);
 
-  useEffect(() => {
-    if (search.trim() === "") {
-      setUserData(null);
-      return;
+  const handleDownload = () => {
+    const blob = new Blob([urdf], { type: "application/xml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "robot.urdf";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleAI = async () => {
+    if (!prompt) return;
+    setLoading(true);
+    try {
+      const urdfCode = await generateURDF(prompt);
+      setUrdf(urdfCode);
+    } catch (err) {
+      console.error("AI generation failed:", err);
+      alert("Failed to generate URDF. Please try again.");
     }
-
-    fetch(`https://dummyjson.com/users/search?q=${search}`)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Failed to fetch");
-        }
-        return response.json();
-      })
-      .then((data) => {
-        setUserData(data);
-      })
-      .catch((error) => {
-        console.error("Error fetching data:", error);
-        setUserData(null);
-      });
-  }, [search]);
+    setLoading(false);
+  };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
-      <div className="flex flex-col gap-5 w-full max-w-[30vw]">
-        <div className="bg-white p-4 rounded-2xl shadow-md flex flex-col transition-shadow hover:border-blue-500 hover:border">
-          <div className="mb-4 flex flex-row flex-wrap gap-4">
-            {selectedUsers.length > 0 &&
-              selectedUsers.map((user) => (
-                <div
-                  key={user.id}
-                  className="mb-2 rounded-xl bg-gradient-to-r flex flex-row gap-2 from-indigo-600 to-violet-600 opacity-70 p-2 shadow text-white"
-                >
-                  <div>
-                    <img src={user.image} alt="" className="h-5 w-5" />
-                    {user.firstName} {user.lastName}
-                  </div>
-                  <button
-                    onClick={() => {
-                      setSelectedUsers(
-                        selectedUsers.filter((u) => u.id !== user.id)
-                      );
-                    }}
-                  >
-                    X
-                  </button>
-                </div>
-              ))}
-          </div>
+    <div className="min-h-screen bg-gray-950 text-gray-200 flex flex-col">
+      {/* Header */}
+      <header className="bg-gray-900 border-b border-gray-800 py-4 px-6 flex justify-between items-center shadow-lg">
+        <h1 className="text-2xl font-bold text-white tracking-tight">
+          🤖 URDF Builder
+        </h1>
+        <button
+          onClick={handleDownload}
+          className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 transition text-white font-medium shadow"
+        >
+          ⬇ Download URDF
+        </button>
+      </header>
 
-          <input
-            type="text"
-            placeholder="Search users..."
-            className="rounded p-2 border border-gray-300 outline-none focus:ring-2 focus:ring-indigo-500"
-            onChange={(e) => setSearch(e.target.value)}
-            value={search}
-          />
+      {/* Main Content */}
+      <main className="flex-grow flex flex-col lg:flex-row p-6 gap-6">
+        {/* Left: Editor + AI Generator */}
+        <div className="flex flex-col w-full lg:w-1/2 space-y-6">
+          {/* AI Generator */}
+          <section className="bg-gray-900 border border-gray-800 rounded-2xl shadow-lg p-6">
+            <h2 className="text-lg font-semibold mb-3 text-white">
+              AI Generator
+            </h2>
+            <div className="flex space-x-3">
+              <input
+                type="text"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Describe your robot (e.g., 2-wheeled robot with lidar)"
+                className="flex-grow p-3 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600 text-gray-200"
+              />
+              <button
+                onClick={handleAI}
+                disabled={loading}
+                className={`px-5 py-3 rounded-lg text-white font-medium transition shadow ${
+                  loading
+                    ? "bg-gray-600 cursor-not-allowed"
+                    : "bg-green-600 hover:bg-green-500"
+                }`}
+              >
+                {loading ? "Generating..." : "Generate"}
+              </button>
+            </div>
+          </section>
+
+          {/* Monaco Editor */}
+          <section className="flex-grow bg-gray-900 border border-gray-800 rounded-2xl shadow-lg p-6">
+            <h2 className="text-lg font-semibold mb-3 text-white">Edit URDF</h2>
+            <div className="w-full h-[450px] border border-gray-700 rounded-lg overflow-hidden">
+              <Editor
+                height="100%"
+                defaultLanguage="xml"
+                value={urdf}
+                onChange={(val) => setUrdf(val || "")}
+                theme="vs-dark"
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  lineNumbers: "on",
+                }}
+              />
+            </div>
+          </section>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl shadow-md flex flex-col transition-shadow hover:border-blue-500 hover:border">
-          {userData?.users?.length > 0 ? (
-            <div className="flex flex-col justify-center items-center gap-4">
-              {userData.users.map((user) => (
-                <div
-                  key={user.id}
-                  className="cursor-pointer rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 opacity-70 p-2 shadow text-white w-full px-8"
-                  onClick={() => {
-                    if (!selectedUsers.some((u) => u.id === user.id)) {
-                      setSelectedUsers([...selectedUsers, user]);
-                    }
-                  }}
-                >
-                  <h2 className="text-lg text-center font-bold">
-                    {user.firstName} {user.lastName}
-                  </h2>
-                </div>
-              ))}
+        {/* Right: Visualization + Joints */}
+        <div className="flex flex-col w-full lg:w-1/2 space-y-6">
+          {/* URDF Viewer */}
+          <section className="flex-grow bg-gray-900 border border-gray-800 rounded-2xl shadow-lg p-4">
+            <h2 className="text-lg font-semibold mb-3 text-white">
+              Visualization
+            </h2>
+            <div className="w-full h-[500px] rounded-lg overflow-hidden border border-gray-700">
+              <URDFViewer
+                urdfContent={urdf}
+                setAvailableJoints={setAvailableJoints}
+              />
             </div>
-          ) : search ? (
-            <p className="text-gray-500">No users found.</p>
-          ) : (
-            <p className="text-gray-500">Start typing to search users.</p>
+          </section>
+
+          {/* Joint Controls */}
+          {availableJoints.length > 0 && (
+            <section className="bg-gray-900 border border-gray-800 rounded-2xl shadow-lg p-6">
+              <h2 className="text-lg font-semibold mb-3 text-white">
+                Joint Controls
+              </h2>
+              <div className="space-y-4 max-h-60 overflow-y-auto">
+                {availableJoints.map(({ name, joint }) => (
+                  <div key={name}>
+                    <label className="block font-medium mb-1 text-gray-300">
+                      {name}
+                    </label>
+                    <input
+                      type="range"
+                      min={-3.14}
+                      max={3.14}
+                      step={0.01}
+                      defaultValue={0}
+                      onChange={(e) => {
+                        if (typeof joint.setJointValue === "function") {
+                          joint.setJointValue(parseFloat(e.target.value));
+                        }
+                      }}
+                      className="w-full accent-blue-600"
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
           )}
         </div>
-      </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 border-t border-gray-800 py-3 text-center text-gray-500 text-sm">
+        URDF Builder © 2025 | Built with React + Three.js + Gemini
+      </footer>
     </div>
   );
 }

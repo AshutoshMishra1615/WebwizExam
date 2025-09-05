@@ -10,10 +10,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@monaco-editor/react": "^4.7.0",
     "@tailwindcss/vite": "^4.1.12",
+    "axios": "^1.11.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "tailwindcss": "^4.1.12"
+    "tailwindcss": "^4.1.12",
+    "three": "^0.180.0",
+    "urdf-loader": "^0.12.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
